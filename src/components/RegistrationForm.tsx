@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Formik, Field, ErrorMessage } from 'formik';
 import type { FormikHelpers } from 'formik';
 import * as Yup from 'yup';
-import { User, Mail, Phone, Lock, CheckCircle, AlertCircle, X } from 'lucide-react';
-
+import { User, Mail, Phone, Lock, CheckCircle, AlertCircle, X, UserPlus } from 'lucide-react';
 
 interface RegistrationFormData {
     fullName: string;
@@ -40,7 +39,7 @@ interface Toast {
     message: string;
 }
 
-
+// Validation Schema
 const registrationSchema = Yup.object().shape({
     fullName: Yup.string()
         .required('Full Name is required')
@@ -70,7 +69,7 @@ const registrationSchema = Yup.object().shape({
         .oneOf([Yup.ref('password')], 'Passwords do not match')
 });
 
-
+// Toast Component
 interface ToastProps {
     toast: Toast | null;
     onClear: () => void;
@@ -110,50 +109,57 @@ const ToastComponent: React.FC<ToastProps> = ({ toast, onClear }) => {
     );
 };
 
-
+// Input Field Component
 interface InputFieldProps {
     name: string;
     type: string;
     placeholder: string;
     icon: React.ComponentType<{ className?: string }>;
+    as?: string;
+    rows?: number;
 }
 
-const InputField: React.FC<InputFieldProps> = ({ name, type, placeholder, icon: Icon }) => {
+const InputField: React.FC<InputFieldProps> = ({ name, type, placeholder, icon: Icon, as, rows }) => {
     return (
-        <div className="space-y-1">
+        <div className="space-y-2">
+            <label htmlFor={name} className="block text-sm font-medium text-gray-700 capitalize">
+                {name === 'fullName' ? 'Full Name' : 
+                 name === 'confirmPassword' ? 'Confirm Password' : 
+                 name}
+            </label>
             <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Icon className="h-5 w-5 text-gray-400" />
                 </div>
                 <Field
+                    id={name}
                     name={name}
                     type={type}
+                    as={as}
+                    rows={rows}
                     placeholder={placeholder}
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 />
             </div>
             <ErrorMessage
                 name={name}
                 component="div"
-                className="text-red-500 text-sm mt-1 flex items-center space-x-1"
+                className="text-red-500 text-sm flex items-center space-x-1"
             >
                 {(msg: string) => (
                     <span className="flex items-center space-x-1">
-            <AlertCircle size={14} />
-            <span>{msg}</span>
-          </span>
+                        <AlertCircle size={14} />
+                        <span>{msg}</span>
+                    </span>
                 )}
             </ErrorMessage>
         </div>
     );
 };
 
-
 const RegistrationForm: React.FC = () => {
     const [toast, setToast] = useState<Toast | null>(null);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-    const [registeredUsers, setRegisteredUsers] = useState<User[]>([]);
-
     const API_BASE_URL = 'http://localhost:5001/api';
 
     const showToast = (type: 'success' | 'error', title: string, message: string): void => {
@@ -182,10 +188,8 @@ const RegistrationForm: React.FC = () => {
 
             if (response.ok) {
                 const successData = data as ApiResponse;
-                showToast('success', 'Registration Successful!', 'Your account has been created successfully.');
+                showToast('success', 'Registration Successful!', 'Your account has been created successfully. You can now login!');
                 resetForm();
-                // Fetch updated user list
-                await fetchUsers();
             } else {
                 const errorData = data as ApiError;
                 if (errorData.errors) {
@@ -204,22 +208,6 @@ const RegistrationForm: React.FC = () => {
         }
     };
 
-    const fetchUsers = async (): Promise<void> => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/users`);
-            const data: ApiResponse = await response.json();
-            if (response.ok && data.users) {
-                setRegisteredUsers(data.users);
-            }
-        } catch (error) {
-            console.error('Failed to fetch users:', error);
-        }
-    };
-
-    useEffect(() => {
-        fetchUsers();
-    }, []);
-
     const initialValues: RegistrationFormData = {
         fullName: '',
         email: '',
@@ -229,18 +217,23 @@ const RegistrationForm: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-            <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                    Create your account
-                </h2>
-                <p className="mt-2 text-center text-sm text-gray-600">
-                    Fill in the form below to register
-                </p>
-            </div>
+        <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-md mx-auto">
+                {/* Header */}
+                <div className="text-center mb-8">
+                    <div className="flex justify-center mb-4">
+                        <UserPlus className="h-12 w-12 text-blue-600" />
+                    </div>
+                    <h1 className="text-3xl font-extrabold text-gray-900">
+                        Create your account
+                    </h1>
+                    <p className="mt-2 text-sm text-gray-600">
+                        Fill in the form below to register and join our platform
+                    </p>
+                </div>
 
-            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+                {/* Registration Form */}
+                <div className="bg-white py-8 px-6 shadow-lg rounded-lg">
                     <Formik
                         initialValues={initialValues}
                         validationSchema={registrationSchema}
@@ -272,7 +265,7 @@ const RegistrationForm: React.FC = () => {
                                 <InputField
                                     name="password"
                                     type="password"
-                                    placeholder="Enter your password"
+                                    placeholder="Enter your password (min 6 characters)"
                                     icon={Lock}
                                 />
 
@@ -283,12 +276,12 @@ const RegistrationForm: React.FC = () => {
                                     icon={Lock}
                                 />
 
-                                <div>
+                                <div className="pt-4">
                                     <button
                                         type="button"
                                         onClick={() => handleSubmit()}
                                         disabled={isSubmitting || formSubmitting}
-                                        className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                     >
                                         {(isSubmitting || formSubmitting) ? (
                                             <div className="flex items-center space-x-2">
@@ -296,55 +289,26 @@ const RegistrationForm: React.FC = () => {
                                                 <span>Registering...</span>
                                             </div>
                                         ) : (
-                                            'Register'
+                                            <>
+                                                <UserPlus className="h-4 w-4 mr-2" />
+                                                Register
+                                            </>
                                         )}
                                     </button>
+                                </div>
+
+                                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                                    <p className="text-sm text-blue-800 text-center">
+                                        💡 After registration, use the Login page to access protected features!
+                                    </p>
                                 </div>
                             </div>
                         )}
                     </Formik>
                 </div>
+
+                <ToastComponent toast={toast} onClear={clearToast} />
             </div>
-
-
-            {registeredUsers.length > 0 && (
-                <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-2xl">
-                    <div className="bg-white shadow sm:rounded-lg">
-                        <div className="px-4 py-5 sm:p-6">
-                            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-                                Registered Users ({registeredUsers.length})
-                            </h3>
-                            <div className="space-y-3">
-                                {registeredUsers.map((user) => (
-                                    <div key={user._id} className="border border-gray-200 rounded-lg p-3">
-                                        <div className="flex items-center space-x-3">
-                                            <div className="flex-shrink-0">
-                                                <User className="h-8 w-8 text-gray-400" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium text-gray-900 truncate">
-                                                    {user.fullName}
-                                                </p>
-                                                <p className="text-sm text-gray-500 truncate">
-                                                    {user.email}
-                                                </p>
-                                                <p className="text-sm text-gray-500">
-                                                    Phone: {user.phone}
-                                                </p>
-                                            </div>
-                                            <div className="text-xs text-gray-400">
-                                                {new Date(user.createdAt).toLocaleDateString()}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <ToastComponent toast={toast} onClear={clearToast} />
         </div>
     );
 };
